@@ -47,6 +47,9 @@
   },
   "packageManager": "pnpm@11.1.2",
   "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
     "build:lib": "tsup",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -60,12 +63,22 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.10",
+    "@tailwindcss/postcss": "^4.3.3",
     "@types/estree": "^1.0.9",
     "@types/node": "^22.0.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
+    "@vercel/analytics": "^2.0.1",
+    "babel-plugin-react-compiler": "^1.0.0",
     "eslint": "^9.39.0",
+    "next": "16.3.2",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "tailwindcss": "^4.3.3",
     "tsup": "^8.5.0",
     "typescript": "^5.9.0",
     "typescript-eslint": "^8.68.0",
     "vitest": "^3.2.0"
-  }
+  },
+  "homepage": "https://eslint-plugin-hollow-tests.kkweb.io/"
 }
