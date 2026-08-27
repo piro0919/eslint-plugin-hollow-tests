@@ -1,6 +1,6 @@
 {
   "name": "eslint-plugin-hollow-tests",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Catch tests that pass without checking anything — no assertion at all, or assertions only inside a branch",
   "keywords": [
     "eslint",

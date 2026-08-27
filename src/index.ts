@@ -2,11 +2,11 @@ import { noHollowTest } from "./no-hollow-test.js";
 import type { ESLint, Linter } from "eslint";
 
 const plugin = {
-  meta: { name: "eslint-plugin-hollow-tests", version: "0.1.0" },
+  meta: { name: "eslint-plugin-hollow-tests", version: "0.1.1" },
   rules: { "no-hollow-test": noHollowTest },
 } satisfies ESLint.Plugin;
 
-/** そのまま並べれば効く設定。テストファイルにだけ当てること。 */
+/** Ready-made config. Apply it to test files only. */
 export const recommended: Linter.Config = {
   plugins: { "hollow-tests": plugin },
   rules: { "hollow-tests/no-hollow-test": "error" },

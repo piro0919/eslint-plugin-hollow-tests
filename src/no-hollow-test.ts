@@ -2,20 +2,21 @@ import type { Rule } from "eslint";
 import type * as ESTree from "estree";
 
 /**
- * 何も確かめずに緑になるテストを止める。
+ * Flag tests that pass without checking anything.
  *
- * 実際に積み上がるのは2つの形。
+ * Two shapes accumulate in real codebases.
  *
- * 1. アサーションが1つも無い本体。書いたつもりで書けていない
- * 2. アサーションが分岐の内側にしか無い本体。`if (found) { expect(...) }` は
- *    条件が外れると1つも実行せずに通る
+ * 1. A body with no assertion at all. Someone meant to write one and didn't.
+ * 2. A body whose assertions live only inside a branch. `if (found) { expect(...) }`
+ *    runs nothing at all when the condition is false.
  *
- * どちらも型検査も lint も通り、テストの件数は増えるので、被覆されているように見える。
+ * Both pass type checking and linting, and both raise the test count, so the code
+ * looks covered. Neither is something a reader reliably notices.
  */
 
 /**
- * `it` / `test` の修飾子は明示的に並べる。`.*` で許すと `test.beforeEach` まで
- * 当たり、フックをテスト本体として数えてしまう。
+ * List the modifiers explicitly. A `.*` pattern would also match `test.beforeEach`
+ * and count hooks as test bodies.
  */
 const TEST_MODIFIERS =
   /^(\.(only|skip|skipIf|runIf|concurrent|sequential|todo|fails|failing|each|for|extend))*$/;
@@ -25,11 +26,11 @@ const DEFAULT_ASSERTION_NAMES = ["expect", "assert"];
 const DEFAULT_OPT_OUT = "hollow-test-ok";
 
 type Options = {
-  /** アサーションとみなす呼び出しの名前。既定は `expect` と `assert`。 */
+  /** Calls that count as assertions. Defaults to `expect` and `assert`. */
   assertionNames?: string[];
-  /** これを含むコメントが付いたテストは見逃す。理由を添えて書く。 */
+  /** A test carrying a comment with this text is left alone. Write the reason next to it. */
   optOutComment?: string;
-  /** テスト本体を作る呼び出しの名前。既定は `it` と `test`。 */
+  /** Calls that introduce a test body. Defaults to `it` and `test`. */
   testNames?: string[];
 };
 
@@ -52,7 +53,7 @@ function childNodes(node: AnyNode): AnyNode[] {
   return children;
 }
 
-/** 呼び出しの先頭の名前。`test.each(...)` なら `test`、`foo.bar()` なら `foo`。 */
+/** The leading name of a call: `test` for `test.each(...)`, `foo` for `foo.bar()`. */
 function rootName(node: AnyNode): null | string {
   let current: AnyNode | undefined = node;
   const suffix: string[] = [];
@@ -71,7 +72,7 @@ function rootName(node: AnyNode): null | string {
       continue;
     }
     if (current.type === "CallExpression") {
-      // `test.each([...])("...", fn)` のように、呼び出しを重ねる形。
+      // Chained calls such as `test.each([...])("...", fn)`.
       current = current.callee as AnyNode | undefined;
       continue;
     }
@@ -84,9 +85,7 @@ function isTestCall(node: AnyNode, testNames: string[]): boolean {
   const name = rootName(node.callee as AnyNode);
   if (!name) return false;
   const [head, ...rest] = name.split(/(?=\.)/);
-  return (
-    testNames.includes(head ?? "") && TEST_MODIFIERS.test(rest.join(""))
-  );
+  return testNames.includes(head ?? "") && TEST_MODIFIERS.test(rest.join(""));
 }
 
 function isAssertionCall(node: AnyNode, assertionNames: string[]): boolean {
@@ -95,17 +94,18 @@ function isAssertionCall(node: AnyNode, assertionNames: string[]): boolean {
   if (callee.type === "Identifier") {
     return assertionNames.includes(String(callee.name));
   }
-  // `assert.equal(...)` のような形も数える。
+  // Also count member forms such as `assert.equal(...)`.
   if (callee.type === "MemberExpression") {
     const object = callee.object as AnyNode;
     return (
-      object.type === "Identifier" && assertionNames.includes(String(object.name))
+      object.type === "Identifier" &&
+      assertionNames.includes(String(object.name))
     );
   }
   return false;
 }
 
-/** ソース1本から、アサーションを内側に持つ名前付き関数を集める。 */
+/** Collect named functions in this file that assert somewhere inside. */
 function collectAssertingHelpers(
   program: AnyNode,
   assertionNames: string[],
@@ -156,9 +156,9 @@ function callsHelper(node: AnyNode, helpers: Set<string>): boolean {
 }
 
 /**
- * 分岐の外に置かれたアサーションの数。
+ * How many assertions sit outside every branch.
  *
- * `if` の条件式そのものは必ず評価されるので、分岐の外として数える。
+ * The test of an `if` always evaluates, so it counts as outside.
  */
 function unguardedAssertions(
   node: AnyNode,
@@ -174,7 +174,7 @@ function unguardedAssertions(
       node.type === "LogicalExpression" &&
       (node.operator === "&&" || node.operator === "||")
     ) {
-      // `found && expect(...)` は条件が外れると実行されない。
+      // `found && expect(...)` does not run when the condition fails.
       childGuarded = guarded || child !== (node.left as unknown);
     } else if (node.type === "SwitchCase" || node.type === "CatchClause") {
       childGuarded = true;
@@ -207,7 +207,8 @@ export const noHollowTest: Rule.RuleModule = {
         if (!body) return;
         const fn = body as unknown as AnyNode;
         const fnBody = fn.body as AnyNode | undefined;
-        // 式だけの本体（`() => expect(...)`）は分岐の外なので必ず実行される。
+        // An expression body such as `() => expect(...)` is outside every branch,
+        // so it always runs.
         if (!fnBody) return;
 
         const comments = [
@@ -241,9 +242,8 @@ export const noHollowTest: Rule.RuleModule = {
     },
     messages: {
       guardedOnly:
-        "このテストのアサーションは分岐の内側にしかありません。条件が外れると1つも実行せずに通ります。",
-      noAssertion:
-        "このテストは何も確かめていません。アサーションがありません。",
+        "Every assertion in this test sits inside a branch. The test passes without running any of them when the condition is false.",
+      noAssertion: "This test checks nothing. It has no assertion.",
     },
     schema: [
       {

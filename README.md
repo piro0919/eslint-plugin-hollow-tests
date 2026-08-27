@@ -1,36 +1,40 @@
 # eslint-plugin-hollow-tests
 
-何も確かめずに緑になるテストを止める。
+Catches tests that pass without checking anything.
 
 ```js
-// ❌ アサーションが1つも無い
-it("記録を保存する", async () => {
+// ❌ no assertion at all
+it("saves the record", async () => {
   await save(record);
 });
 
-// ❌ アサーションが分岐の内側にしかない。条件が外れると1つも実行せずに通る
-it("ボタンがあれば押せる", () => {
+// ❌ assertions only inside a branch — nothing runs when the condition is false
+it("uses the button when present", () => {
   if (hasButton) {
     expect(getButton()).toBeVisible();
   }
 });
 ```
 
-どちらも型検査も lint も通り、テストの件数は増えるので、被覆されているように見える。人が読んで気づく形ではない。
+Both pass type checking and linting, and both raise the test count, so the code
+looks covered. Neither is something a reader reliably notices.
 
-## `expect-expect` との違い
+## How this differs from `expect-expect`
 
-`vitest/expect-expect` と `jest/expect-expect` は「そのテスト本体に assert 関数の呼び出しがあるか」を見る。この規則は2歩踏み込む。
+`vitest/expect-expect` and `jest/expect-expect` check whether a test body contains
+a call to an assertion function. This rule goes two steps further.
 
 | | expect-expect | hollow-tests |
 | ---- | ---- | ---- |
-| アサーションが無い本体 | 拾う | 拾う |
-| 分岐の内側にしか無い本体 | 見逃す | **拾う** |
-| 判定をヘルパーへ寄せた書き方 | 名前を設定に列挙する必要がある | **同じファイル内なら自動で追う** |
+| Body with no assertion | reported | reported |
+| Assertions only inside a branch | missed | **reported** |
+| Assertions moved into a helper | needs the helper listed in config | **followed automatically within the file** |
 
-分岐の内側だけ、と数えるのは `if` / 三項演算子 / `&&` `||` の右側 / `switch` の `case` / `catch`。`if` の条件式そのものは必ず評価されるので、分岐の外として数える。
+"Inside a branch" covers `if`, the conditional operator, the right-hand side of
+`&&` and `||`, a `switch` case, and `catch`. The test of an `if` always evaluates,
+so it counts as outside.
 
-## 導入
+## Install
 
 ```bash
 npm install -D eslint-plugin-hollow-tests
@@ -49,7 +53,7 @@ export default [
 ];
 ```
 
-用意した設定をそのまま並べてもよい。テストファイルにだけ当てること。
+A ready-made config is also exported. Apply it to test files only.
 
 ```js
 import { recommended } from "eslint-plugin-hollow-tests";
@@ -57,7 +61,7 @@ import { recommended } from "eslint-plugin-hollow-tests";
 export default [{ ...recommended, files: ["**/*.test.ts"] }];
 ```
 
-## 設定
+## Options
 
 ```js
 "hollow-tests/no-hollow-test": ["error", {
@@ -67,29 +71,31 @@ export default [{ ...recommended, files: ["**/*.test.ts"] }];
 }]
 ```
 
-| 名前 | 既定 | 説明 |
+| Option | Default | Meaning |
 | ---- | ---- | ---- |
-| `assertionNames` | `["expect", "assert"]` | アサーションとみなす呼び出し。`assert.equal(...)` のような形も数える |
-| `testNames` | `["it", "test"]` | テスト本体を作る呼び出し。修飾子（`.skip` `.each` など）は自動で付いてよい |
-| `optOutComment` | `"hollow-test-ok"` | これを含むコメントが付いたテストは見逃す |
+| `assertionNames` | `["expect", "assert"]` | Calls that count as assertions. Member forms such as `assert.equal(...)` count too |
+| `testNames` | `["it", "test"]` | Calls that introduce a test body. Modifiers (`.skip`, `.each`, …) are matched automatically |
+| `optOutComment` | `"hollow-test-ok"` | A test carrying a comment with this text is left alone |
 
-## 見逃す
+## Opting out
 
-確かめないことに理由があるなら、その理由と一緒に書く。
+When there is a reason not to assert, write the reason next to it.
 
 ```js
-// hollow-test-ok 例外が飛ばないことだけを確かめている
-it("描画で落ちない", () => {
+// hollow-test-ok only checks that rendering does not throw
+it("does not throw", () => {
   render(<App />);
 });
 ```
 
-## 拾わないもの
+## What it does not report
 
-- フック。`test.beforeEach` のような形をテスト本体として数えない。修飾子は明示的に並べてあり、`.*` では許していない
-- 式だけの本体。`() => expect(a).toBe(1)` は必ず実行される
-- 別ファイルのヘルパー。アサーションの追跡は同じファイルの中だけ。またぐ場合は `assertionNames` にその名前を足す
+- Hooks. A call shaped like `test.beforeEach` is not treated as a test body. The
+  modifiers are listed explicitly rather than matched with `.*`
+- Expression bodies. `() => expect(a).toBe(1)` always runs
+- Helpers from another file. Assertions are followed within a single file only.
+  For a shared helper, add its name to `assertionNames`
 
-## ライセンス
+## License
 
 MIT

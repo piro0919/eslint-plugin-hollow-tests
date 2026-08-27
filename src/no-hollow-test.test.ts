@@ -6,7 +6,7 @@ const ruleTester = new RuleTester({
   languageOptions: { ecmaVersion: 2022, sourceType: "module" },
 });
 
-// RuleTester は自前の it/describe を探すので、vitest のものを渡す。
+// RuleTester looks for its own it/describe, so hand it vitest's.
 RuleTester.describe = describe as never;
 RuleTester.it = it as never;
 RuleTester.itOnly = it.only as never;
@@ -18,7 +18,7 @@ ruleTester.run("no-hollow-test", noHollowTest, {
       errors: [{ messageId: "noAssertion" }],
     },
     {
-      // 実際に積み上がっていた形。条件が外れると1つも実行せずに通る。
+      // A shape found in a real suite. Nothing runs when the condition is false.
       code: `
         it("uses the button when present", () => {
           const hasButton = getButton() !== null;
@@ -68,7 +68,7 @@ ruleTester.run("no-hollow-test", noHollowTest, {
       errors: [{ messageId: "noAssertion" }],
     },
     {
-      // ヘルパーを呼んでいても、そのヘルパーが確かめていなければ見逃さない。
+      // Calling a helper is not enough when the helper asserts nothing.
       code: `
         function saveRecord() { return submit(); }
         it("saves", () => { saveRecord(); });
@@ -76,7 +76,7 @@ ruleTester.run("no-hollow-test", noHollowTest, {
       errors: [{ messageId: "noAssertion" }],
     },
     {
-      // 名前を差し替えたら、既定の expect はアサーションとして数えない。
+      // Renaming the assertion stops `expect` from counting as one.
       code: `it("uses expect after renaming", () => { expect(1).toBe(1); });`,
       errors: [{ messageId: "noAssertion" }],
       options: [{ assertionNames: ["check"] }],
@@ -85,7 +85,7 @@ ruleTester.run("no-hollow-test", noHollowTest, {
   valid: [
     `it("checks the value", () => { expect(sum(1, 2)).toBe(3); });`,
     `test("checks the value", () => { expect(sum(1, 2)).toBe(3); });`,
-    // 判定をヘルパーへ寄せた書き方は壊さない。
+    // Assertions moved into a helper still count.
     `
       function expectSaved(id) { expect(store.get(id)).toBeDefined(); }
       it("saves", () => { save("1"); expectSaved("1"); });
@@ -94,26 +94,26 @@ ruleTester.run("no-hollow-test", noHollowTest, {
       const expectSaved = (id) => { expect(store.get(id)).toBeDefined(); };
       it("saves", () => { expectSaved("1"); });
     `,
-    // 分岐の内側にもあるが、外にもある。
+    // Some assertions are inside a branch, but one is outside.
     `
       it("checks both ways", () => {
         expect(page.url()).toBeTruthy();
         if (isAdmin) expect(page.url()).toContain("/admin");
       });
     `,
-    // if の条件式そのものは必ず評価される。
+    // The test of an `if` always evaluates.
     `it("checks in the condition", () => { if (expect(a).toBe(1)) { run(); } });`,
     `it("has no body to inspect", "not a function");`,
-    // フックはテスト本体ではない。ここを拾うと大量に誤検知する。
+    // Hooks are not test bodies. Catching them would produce a flood of false reports.
     `test.beforeEach(() => { reset(); });`,
     `beforeEach(() => { reset(); });`,
     `describe("group", () => { it("checks", () => { expect(1).toBe(1); }); });`,
-    // 見逃しは作者が理由を添えて宣言する。
+    // Skipping is declared by the author, with a reason.
     `
-      // hollow-test-ok 例外が飛ばないことだけを確かめている
+      // hollow-test-ok only checks that rendering does not throw
       it("does not throw", () => { render(); });
     `,
-    `it("does not throw", () => { /* hollow-test-ok 投げないことだけ見る */ render(); });`,
+    `it("does not throw", () => { /* hollow-test-ok only checks it does not throw */ render(); });`,
     {
       code: `it("checks with a custom name", () => { check(1); });`,
       options: [{ assertionNames: ["check"] }],
@@ -122,7 +122,7 @@ ruleTester.run("no-hollow-test", noHollowTest, {
       code: `spec("checks", () => { expect(1).toBe(1); });`,
       options: [{ testNames: ["spec"] }],
     },
-    // 既定の名前では拾わないので、設定を変えないかぎり無視する。
+    // Not matched by the default names, so it is ignored until configured.
     `spec("does nothing", () => { noop(); });`,
     `it("asserts with assert", () => { assert.equal(1, 1); });`,
   ],

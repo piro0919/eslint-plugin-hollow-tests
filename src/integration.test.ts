@@ -4,10 +4,11 @@ import plugin, { recommended } from "./index.js";
 import tseslint from "typescript-eslint";
 
 /**
- * 実際の使い方どおりに ESLint へ差し込んで通す。
+ * Run the plugin through ESLint the way it is actually used.
  *
- * 規則そのものは RuleTester で見ているので、ここで見るのは「設定として読み込めるか」
- * と「TypeScript の構文でも動くか」。利用者はほぼ TypeScript で使う。
+ * RuleTester already covers the rule itself, so what this file checks is that the
+ * config loads and that the rule survives TypeScript syntax. Nearly every consumer
+ * is on TypeScript.
  */
 async function lint(code: string, filePath: string): Promise<string[]> {
   const eslint = new ESLint({
@@ -24,12 +25,12 @@ async function lint(code: string, filePath: string): Promise<string[]> {
   return (result?.messages ?? []).map((message) => String(message.messageId));
 }
 
-describe("ESLint に差し込む", () => {
-  it("規則を公開している", () => {
+describe("plugged into ESLint", () => {
+  it("exposes the rule", () => {
     expect(Object.keys(plugin.rules)).toEqual(["no-hollow-test"]);
   });
 
-  it("TypeScript のテストで、確かめていない本体を拾う", async () => {
+  it("reports a body that checks nothing in a TypeScript test", async () => {
     const messages = await lint(
       `
         declare const save: (id: string) => Promise<void>;
@@ -42,7 +43,7 @@ describe("ESLint に差し込む", () => {
     expect(messages).toEqual(["noAssertion"]);
   });
 
-  it("TypeScript のテストで、分岐の内側だけの本体を拾う", async () => {
+  it("reports a body that only checks inside a branch", async () => {
     const messages = await lint(
       `
         it("checks when present", () => {
@@ -57,7 +58,7 @@ describe("ESLint に差し込む", () => {
     expect(messages).toEqual(["guardedOnly"]);
   });
 
-  it("確かめている本体は通す", async () => {
+  it("leaves a checking body alone", async () => {
     const messages = await lint(
       `
         it("checks the value", () => {
