@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 type LintMessage = {
   column: number;
@@ -9,21 +9,26 @@ type LintMessage = {
   messageId: null | string;
 };
 
-const SAMPLES: { code: string; label: string }[] = [
+type Sample = { code: string; name: string };
+
+const SAMPLES: Sample[] = [
   {
     code: `it("saves the record", async () => {
   await save(record);
-});`,
-    label: "No assertion",
+});
+`,
+    name: "no-assertion.test.js",
   },
   {
     code: `it("uses the button when present", () => {
   const hasButton = getButton() !== null;
+
   if (hasButton) {
     expect(getButton()).toBeVisible();
   }
-});`,
-    label: "Only inside a branch",
+});
+`,
+    name: "guarded.test.js",
   },
   {
     code: `function expectSaved(id) {
@@ -33,8 +38,9 @@ const SAMPLES: { code: string; label: string }[] = [
 it("saves", () => {
   save("1");
   expectSaved("1");
-});`,
-    label: "Assertion in a helper",
+});
+`,
+    name: "helper.test.js",
   },
   {
     code: `test.beforeEach(() => {
@@ -43,20 +49,29 @@ it("saves", () => {
 
 it("checks the value", () => {
   expect(sum(1, 2)).toBe(3);
-});`,
-    label: "A hook and a real test",
+});
+`,
+    name: "hooks.test.js",
   },
 ];
 
+/** Line height of both the gutter and the editor, in pixels. */
+const LINE_HEIGHT = 24;
+
 export default function Home() {
+  const [active, setActive] = useState(0);
   const [code, setCode] = useState(SAMPLES[0]?.code ?? "");
   const [error, setError] = useState<null | string>(null);
   const [messages, setMessages] = useState<LintMessage[]>([]);
-  const [running, setRunning] = useState(false);
+
+  const lines = useMemo(() => code.split("\n"), [code]);
+  const flagged = useMemo(
+    () => new Set(messages.map((message) => message.line)),
+    [messages],
+  );
 
   const run = useCallback(async (source: string) => {
     setError(null);
-    setRunning(true);
     try {
       const response = await fetch("/api/lint", {
         body: JSON.stringify({ code: source }),
@@ -73,144 +88,177 @@ export default function Home() {
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
       setMessages([]);
-    } finally {
-      setRunning(false);
     }
   }, []);
 
-  // Lint as you type, once typing pauses.
+  // Lint once typing pauses, the way an editor would.
   useEffect(() => {
-    const timer = setTimeout(() => void run(code), 400);
+    const timer = setTimeout(() => void run(code), 350);
     return () => clearTimeout(timer);
   }, [code, run]);
 
+  const openSample = useCallback((index: number) => {
+    setActive(index);
+    setCode(SAMPLES[index]?.code ?? "");
+  }, []);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900">
-      <div className="mx-auto max-w-3xl px-6 py-16">
-        <header className="mb-12 text-center">
-          <h1 className="mb-2 font-display text-4xl font-bold tracking-tight text-white">
-            hollow tests
-          </h1>
-          <p className="text-zinc-400">
-            Tests that pass without checking anything
-          </p>
-          <div className="mt-5 flex flex-wrap items-center justify-center gap-3 text-sm">
-            <a
-              className="rounded-full bg-zinc-700/50 px-4 py-2 text-zinc-300 transition-colors hover:bg-zinc-700"
-              href="https://www.npmjs.com/package/eslint-plugin-hollow-tests"
-              rel="noreferrer"
-              target="_blank"
+    <div className="flex min-h-screen flex-col bg-[#0b0b0f] text-zinc-200">
+      <header className="flex flex-wrap items-baseline gap-x-4 gap-y-1 border-b border-zinc-800 px-5 py-3">
+        <h1 className="font-display text-base font-bold tracking-tight text-white">
+          eslint-plugin-hollow-tests
+        </h1>
+        <p className="mr-auto text-xs text-zinc-500">
+          Tests that pass without checking anything
+        </p>
+        <span className="font-mono text-xs text-zinc-500">no-hollow-test</span>
+      </header>
+
+      {/* Tabs, gutter, code, problems: the rule shown where it actually shows up. */}
+      <main className="flex flex-1 flex-col">
+        <div className="flex overflow-x-auto border-b border-zinc-800 bg-[#08080b]">
+          {SAMPLES.map((sample, index) => (
+            <button
+              className={`border-r border-zinc-800 px-4 py-2.5 font-mono text-xs whitespace-nowrap transition-colors ${
+                index === active
+                  ? "bg-[#0b0b0f] text-zinc-200"
+                  : "text-zinc-600 hover:text-zinc-400"
+              }`}
+              key={sample.name}
+              onClick={() => openSample(index)}
+              type="button"
             >
-              npm
-            </a>
-            <a
-              className="rounded-full bg-zinc-700/50 px-4 py-2 text-zinc-300 transition-colors hover:bg-zinc-700"
-              href="https://github.com/piro0919/eslint-plugin-hollow-tests"
-              rel="noreferrer"
-              target="_blank"
+              {sample.name}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex flex-1">
+          {/* gutter */}
+          <div
+            aria-hidden="true"
+            className="w-14 shrink-0 border-r border-zinc-900 bg-[#08080b] py-4 text-right font-mono text-sm select-none"
+            style={{ lineHeight: `${LINE_HEIGHT}px` }}
+          >
+            {lines.map((_, index) => {
+              const number = index + 1;
+              const hit = flagged.has(number);
+              return (
+                <div
+                  className={`pr-3 ${hit ? "bg-amber-500/10 text-amber-400" : "text-zinc-700"}`}
+                  key={`line-${number}`}
+                >
+                  {hit ? "●" : ""} {number}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* the code itself, with the reported lines lit behind it */}
+          <div className="relative flex-1">
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 py-4"
+              style={{ lineHeight: `${LINE_HEIGHT}px` }}
             >
-              GitHub
-            </a>
+              {lines.map((_, index) => (
+                <div
+                  className={
+                    flagged.has(index + 1) ? "bg-amber-500/10" : undefined
+                  }
+                  key={`row-${index + 1}`}
+                  style={{ height: LINE_HEIGHT }}
+                />
+              ))}
+            </div>
+            <textarea
+              aria-label="Code to lint"
+              className="relative h-full min-h-72 w-full resize-none bg-transparent px-4 py-4 font-mono text-sm text-zinc-200 outline-none"
+              onChange={(event) => setCode(event.target.value)}
+              spellCheck={false}
+              style={{ lineHeight: `${LINE_HEIGHT}px` }}
+              value={code}
+            />
           </div>
-        </header>
+        </div>
 
-        <section className="mb-10">
-          <div className="mb-3 flex flex-wrap gap-2">
-            {SAMPLES.map((sample) => (
-              <button
-                className="rounded-full bg-zinc-700/50 px-3.5 py-1.5 text-xs text-zinc-300 transition-colors hover:bg-zinc-700"
-                key={sample.label}
-                onClick={() => setCode(sample.code)}
-                type="button"
-              >
-                {sample.label}
-              </button>
-            ))}
+        {/* problems panel */}
+        <div className="border-t border-zinc-800 bg-[#08080b]">
+          <div className="flex items-center gap-2 border-b border-zinc-900 px-5 py-2 font-mono text-[11px] tracking-wide text-zinc-500 uppercase">
+            Problems
+            <span
+              className={`rounded-full px-2 py-0.5 ${
+                messages.length > 0
+                  ? "bg-amber-500/15 text-amber-400"
+                  : "bg-zinc-800 text-zinc-500"
+              }`}
+            >
+              {messages.length}
+            </span>
           </div>
-
-          <textarea
-            aria-label="Code to lint"
-            className="h-64 w-full resize-y rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 font-mono text-sm text-zinc-200 outline-none focus:border-zinc-600"
-            onChange={(event) => setCode(event.target.value)}
-            spellCheck={false}
-            value={code}
-          />
-
-          <div className="mt-4 min-h-16 rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5">
+          <div className="max-h-40 overflow-y-auto px-5 py-3">
             {error ? (
-              <p className="text-sm text-red-300">{error}</p>
-            ) : running && messages.length === 0 ? (
-              <p className="text-sm text-zinc-500">Linting…</p>
+              <p className="font-mono text-xs text-red-300">{error}</p>
             ) : messages.length === 0 ? (
-              <p className="flex items-center gap-2 text-sm text-emerald-300">
-                <span className="inline-block h-2 w-2 rounded-full bg-emerald-400" />
-                Nothing reported
+              <p className="font-mono text-xs text-zinc-600">
+                Nothing reported.
               </p>
             ) : (
-              <ul className="space-y-3">
+              <ul className="space-y-2">
                 {messages.map((message) => (
                   <li
-                    className="flex gap-3 text-sm"
+                    className="flex gap-3 font-mono text-xs leading-relaxed"
                     key={`${message.line}:${message.column}:${message.messageId}`}
                   >
-                    <span className="shrink-0 font-mono text-amber-400">
+                    <span className="shrink-0 text-amber-400">
                       {message.line}:{message.column}
                     </span>
-                    <span className="text-zinc-300">{message.message}</span>
+                    <span className="text-zinc-400">{message.message}</span>
                   </li>
                 ))}
               </ul>
             )}
           </div>
-        </section>
+        </div>
+      </main>
 
-        <section>
-          <h2 className="mb-4 font-display text-xl font-bold text-white">
-            Why not <code className="font-mono">expect-expect</code>
-          </h2>
-          <p className="mb-6 text-sm leading-relaxed text-zinc-400">
-            <code className="font-mono text-zinc-300">expect-expect</code>{" "}
-            checks whether a test body contains a call to an assertion function.
-            This rule also reports a body whose assertions all sit inside a
-            branch, and it follows assertions moved into a helper within the
-            same file.
-          </p>
+      <p className="px-5 py-4 text-xs leading-relaxed text-zinc-600">
+        <code className="text-zinc-500">expect-expect</code> checks whether a
+        test body calls an assertion function. This rule also reports a body
+        whose assertions all sit inside a branch, and it follows assertions
+        moved into a helper within the same file. Edit any tab above and watch
+        it re-run.
+      </p>
 
-          <h2 className="mt-10 mb-4 font-display text-xl font-bold text-white">
-            Install
-          </h2>
-          <pre className="overflow-x-auto rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 font-mono text-sm text-zinc-300">
-            <code>npm install -D eslint-plugin-hollow-tests</code>
-          </pre>
-
-          <h2 className="mt-10 mb-4 font-display text-xl font-bold text-white">
-            Usage
-          </h2>
-          <pre className="overflow-x-auto rounded-2xl border border-zinc-800 bg-zinc-950/70 p-5 font-mono text-sm text-zinc-300">
-            <code>{`// eslint.config.js
-import hollowTests from "eslint-plugin-hollow-tests";
-
-export default [
-  {
-    files: ["**/*.test.ts", "**/*.spec.ts"],
-    plugins: { "hollow-tests": hollowTests },
-    rules: { "hollow-tests/no-hollow-test": "error" },
-  },
-];`}</code>
-          </pre>
-        </section>
-
-        <footer className="mt-16 text-center text-sm text-zinc-600">
-          <a
-            className="transition-colors hover:text-zinc-400"
-            href="https://kkweb.io/"
-            rel="noreferrer"
-            target="_blank"
-          >
-            kkweb.io
-          </a>
-        </footer>
-      </div>
+      <footer className="flex flex-wrap items-center gap-4 border-t border-zinc-800 px-5 py-4 text-sm">
+        <code className="rounded border border-zinc-800 bg-zinc-900/60 px-3 py-1.5 font-mono text-xs text-zinc-300">
+          npm i -D eslint-plugin-hollow-tests
+        </code>
+        <a
+          className="text-zinc-500 transition-colors hover:text-zinc-300"
+          href="https://github.com/piro0919/eslint-plugin-hollow-tests"
+          rel="noreferrer"
+          target="_blank"
+        >
+          GitHub →
+        </a>
+        <a
+          className="text-zinc-500 transition-colors hover:text-zinc-300"
+          href="https://www.npmjs.com/package/eslint-plugin-hollow-tests"
+          rel="noreferrer"
+          target="_blank"
+        >
+          npm →
+        </a>
+        <a
+          className="ml-auto text-zinc-600 transition-colors hover:text-zinc-400"
+          href="https://kkweb.io/"
+          rel="noreferrer"
+          target="_blank"
+        >
+          kkweb.io
+        </a>
+      </footer>
     </div>
   );
 }
