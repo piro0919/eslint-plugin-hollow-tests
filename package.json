@@ -1,0 +1,54 @@
+{
+  "name": "eslint-plugin-hollow-tests",
+  "version": "0.1.0",
+  "description": "Catch tests that pass without checking anything — no assertion at all, or assertions only inside a branch",
+  "keywords": [
+    "eslint",
+    "eslintplugin",
+    "eslint-plugin",
+    "test",
+    "vitest",
+    "jest",
+    "assertion",
+    "expect-expect"
+  ],
+  "license": "MIT",
+  "author": "piro0919",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/piro0919/eslint-plugin-hollow-tests.git"
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@11.1.2",
+  "peerDependencies": {
+    "eslint": ">=9"
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "pnpm test && pnpm typecheck && pnpm build"
+  },
+  "devDependencies": {
+    "@types/estree": "^1.0.9",
+    "@types/node": "^22.0.0",
+    "eslint": "^9.39.0",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.0",
+    "typescript-eslint": "^8.68.0",
+    "vitest": "^3.2.0"
+  }
+}
