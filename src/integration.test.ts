@@ -1,7 +1,7 @@
 import { ESLint } from "eslint";
+import tseslint from "typescript-eslint";
 import { describe, expect, it } from "vitest";
 import plugin, { recommended } from "./index.js";
-import tseslint from "typescript-eslint";
 
 /**
  * Run the plugin through ESLint the way it is actually used.

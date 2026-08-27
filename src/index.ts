@@ -1,8 +1,8 @@
-import { noHollowTest } from "./no-hollow-test.js";
 import type { ESLint, Linter } from "eslint";
+import { noHollowTest } from "./no-hollow-test.js";
 
 const plugin = {
-  meta: { name: "eslint-plugin-hollow-tests", version: "0.1.1" },
+  meta: { name: "eslint-plugin-hollow-tests", version: "0.1.2" },
   rules: { "no-hollow-test": noHollowTest },
 } satisfies ESLint.Plugin;
 
