@@ -1,6 +1,6 @@
 {
   "name": "eslint-plugin-hollow-tests",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Catch tests that pass without checking anything — no assertion at all, or assertions only inside a branch",
   "type": "module",
   "sideEffects": false,
@@ -42,9 +42,6 @@
     "url": "https://github.com/piro0919/eslint-plugin-hollow-tests/issues"
   },
   "author": "piro0919 <piro.haniwa@gmail.com> (https://kkweb.io/)",
-  "engines": {
-    "node": ">=20"
-  },
   "packageManager": "pnpm@11.1.2",
   "scripts": {
     "dev": "next dev",
@@ -71,6 +68,7 @@
     "@vercel/analytics": "^2.0.1",
     "babel-plugin-react-compiler": "^1.0.0",
     "eslint": "^9.39.0",
+    "lefthook": "^2.1.10",
     "next": "16.3.2",
     "react": "19.2.8",
     "react-dom": "19.2.8",

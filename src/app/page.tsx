@@ -65,6 +65,9 @@ export default function Home() {
   const [messages, setMessages] = useState<LintMessage[]>([]);
 
   const lines = useMemo(() => code.split("\n"), [code]);
+  /* Rows are positions, not data. Give them stable keys of their own so the
+     highlight layer and the gutter stay in step with the textarea. */
+  const rowNumbers = useMemo(() => lines.map((_, index) => index + 1), [lines]);
   const flagged = useMemo(
     () => new Set(messages.map((message) => message.line)),
     [messages],
@@ -140,8 +143,7 @@ export default function Home() {
             className="w-14 shrink-0 border-r border-zinc-900 bg-[#08080b] py-4 text-right font-mono text-sm select-none"
             style={{ lineHeight: `${LINE_HEIGHT}px` }}
           >
-            {lines.map((_, index) => {
-              const number = index + 1;
+            {rowNumbers.map((number) => {
               const hit = flagged.has(number);
               return (
                 <div
@@ -161,12 +163,12 @@ export default function Home() {
               className="pointer-events-none absolute inset-0 py-4"
               style={{ lineHeight: `${LINE_HEIGHT}px` }}
             >
-              {lines.map((_, index) => (
+              {rowNumbers.map((number) => (
                 <div
                   className={
-                    flagged.has(index + 1) ? "bg-amber-500/10" : undefined
+                    flagged.has(number) ? "bg-amber-500/10" : undefined
                   }
-                  key={`row-${index + 1}`}
+                  key={`row-${number}`}
                   style={{ height: LINE_HEIGHT }}
                 />
               ))}

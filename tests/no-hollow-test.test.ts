@@ -1,6 +1,6 @@
 import { RuleTester } from "eslint";
 import { describe, it } from "vitest";
-import { noHollowTest } from "./no-hollow-test";
+import { noHollowTest } from "../src/no-hollow-test";
 
 const ruleTester = new RuleTester({
   languageOptions: { ecmaVersion: 2022, sourceType: "module" },
