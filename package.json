@@ -56,7 +56,7 @@
     "prepublishOnly": "pnpm test && pnpm build:lib"
   },
   "peerDependencies": {
-    "eslint": ">=9"
+    "eslint": ">=10.9.1"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.10",
