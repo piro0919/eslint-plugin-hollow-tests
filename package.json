@@ -75,7 +75,7 @@
     "tailwindcss": "^4.3.3",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.69.0",
+    "typescript-eslint": "^8.70.0",
     "vitest": "^3.2.7"
   },
   "homepage": "https://eslint-plugin-hollow-tests.kkweb.io/"
