@@ -1,5 +1,29 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- **BREAKING (new reports):** a call to an asserting helper inside a branch no
+  longer counts as a check that always runs. `if (found) expectSaved()` is now
+  reported as `guardedOnly`, like `if (found) expect(...)`. The helper check used
+  to run before the branch check and let it through.
+- **BREAKING (new reports):** the body of a `for`, `for…in`, `for…of` or `while`
+  loop counts as a branch. `for (const row of []) expect(row)…` runs nothing and
+  is now reported. `do … while` runs at least once and is not. The right-hand side
+  of `??` is treated as a branch too, like `&&` and `||`.
+- `meta.version` comes from `package.json` at build time. It was hardcoded and
+  would drift on the next release.
+
+### Added
+
+- `plugin.configs.recommended`, where ESLint's docs and most configs look for it.
+  The named export `recommended` stays and is the same object.
+- `engines.node` is back, as `>=18.18.0` — ESLint 9's own floor.
+- CI checks the packed package with `publint --strict` and `attw`
+  (`pnpm check:package`), runs the tests on Node 22 and 24 and on ESLint 10, and
+  checks the build loads on Node 18 and 20.
+
 ## 0.1.3
 
 ### Changed
