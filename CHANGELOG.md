@@ -19,7 +19,6 @@
 
 - `plugin.configs.recommended`, where ESLint's docs and most configs look for it.
   The named export `recommended` stays and is the same object.
-- `engines.node` is back, as `>=18.18.0` — ESLint 9's own floor.
 - CI checks the packed package with `publint --strict` and `attw`
   (`pnpm check:package`), runs the tests on Node 22 and 24 and on ESLint 10, and
   checks the build loads on Node 18 and 20.

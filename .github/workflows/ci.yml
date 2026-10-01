@@ -63,7 +63,7 @@ jobs:
       - run: node -e "if (!require('eslint/package.json').version.startsWith('10.')) process.exit(1)"
       - run: pnpm test
 
-  # `engines` allows Node 18.18 and 20, which ESLint 9 still supports. Build on
+  # The package supports Node 18.18 and 20, which ESLint 9 still supports. Build on
   # 22 and check the package loads there through both entry points.
   old-node-load:
     name: load on node ${{ matrix.node }}
