@@ -24,7 +24,7 @@ sit inside a branch, and it follows assertions moved into a helper within the fi
 
 ```text
 src/
-├── index.ts            # plugin entry point and the `recommended` config
+├── index.ts            # plugin entry point and `configs.recommended`
 ├── no-hollow-test.ts   # the rule
 └── app/                # Next.js App Router (demo site)
     └── api/lint/       # runs the rule on a snippet for the playground
@@ -70,5 +70,6 @@ restoring. Assertions that never bite are worse than no tests.
 
 ## Releasing
 
-Bump `version` in `package.json` **and in `src/index.ts`'s `meta`**, add a
-`CHANGELOG.md` entry, then push a `vX.Y.Z` tag.
+Bump `version` in `package.json`, add a `CHANGELOG.md` entry, then push a
+`vX.Y.Z` tag. `meta.version` is filled in from `package.json` by tsup's `define`
+(and by vitest's, for the tests), so it no longer needs a separate bump.

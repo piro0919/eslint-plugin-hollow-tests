@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { ESLint } from "eslint";
 import tseslint from "typescript-eslint";
 import { describe, expect, it } from "vitest";
@@ -28,6 +29,20 @@ async function lint(code: string, filePath: string): Promise<string[]> {
 describe("plugged into ESLint", () => {
   it("exposes the rule", () => {
     expect(Object.keys(plugin.rules)).toEqual(["no-hollow-test"]);
+  });
+
+  it("exposes the recommended config on the plugin and as a named export", () => {
+    expect(plugin.configs.recommended).toBe(recommended);
+    expect(plugin.configs.recommended.rules).toEqual({
+      "hollow-tests/no-hollow-test": "error",
+    });
+  });
+
+  it("reports the version in package.json", () => {
+    const { version } = JSON.parse(readFileSync("package.json", "utf8")) as {
+      version: string;
+    };
+    expect(plugin.meta.version).toBe(version);
   });
 
   it("reports a body that checks nothing in a TypeScript test", async () => {

@@ -53,13 +53,19 @@ export default [
 ];
 ```
 
-A ready-made config is also exported. Apply it to test files only.
+A ready-made config is also available as `configs.recommended`. Apply it to test
+files only.
 
 ```js
-import { recommended } from "eslint-plugin-hollow-tests";
+import hollowTests from "eslint-plugin-hollow-tests";
 
-export default [{ ...recommended, files: ["**/*.test.ts"] }];
+export default [
+  { ...hollowTests.configs.recommended, files: ["**/*.test.ts"] },
+];
 ```
+
+The same config is also a named export, `recommended`, for configs written
+against 0.1.
 
 ## Options
 
