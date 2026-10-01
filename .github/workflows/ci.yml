@@ -22,3 +22,69 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build:lib
+      - run: pnpm check:package
+
+  # The tests on every Node line the dev toolchain runs on. pnpm 11 needs
+  # Node >= 22.13, so older lines only get the load check below.
+  node:
+    name: node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.1.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+
+  # peerDependencies says eslint >=9, so the tests run on 10 as well as on the
+  # 9 in the lockfile.
+  eslint10:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.1.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.23.2
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm add -D eslint@10
+      - run: node -e "if (!require('eslint/package.json').version.startsWith('10.')) process.exit(1)"
+      - run: pnpm test
+
+  # `engines` allows Node 18.18 and 20, which ESLint 9 still supports. Build on
+  # 22 and check the package loads there through both entry points.
+  old-node-load:
+    name: load on node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [18, 20]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.1.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.23.2
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build:lib
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - run: node -e "const m = require('eslint-plugin-hollow-tests'); if (!m.default.rules['no-hollow-test'] || !m.default.configs.recommended) process.exit(1)"
+      - run: node --input-type=module -e "const m = await import('eslint-plugin-hollow-tests'); if (!m.default.rules['no-hollow-test'] || !m.default.configs.recommended) process.exit(1)"
