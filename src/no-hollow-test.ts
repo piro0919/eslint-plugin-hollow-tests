@@ -147,39 +147,77 @@ function containsAssertion(node: AnyNode, assertionNames: string[]): boolean {
   );
 }
 
+function isHelperCall(node: AnyNode, helpers: Set<string>): boolean {
+  if (node.type !== "CallExpression") return false;
+  const name = rootName(node.callee as AnyNode);
+  return name !== null && helpers.has(name.split(".")[0] ?? "");
+}
+
 function callsHelper(node: AnyNode, helpers: Set<string>): boolean {
-  if (node.type === "CallExpression") {
-    const name = rootName(node.callee as AnyNode);
-    if (name && helpers.has(name.split(".")[0] ?? "")) return true;
-  }
+  if (isHelperCall(node, helpers)) return true;
   return childNodes(node).some((child) => callsHelper(child, helpers));
 }
 
 /**
- * How many assertions sit outside every branch.
+ * Whether a child of `node` only runs on some paths.
  *
- * The test of an `if` always evaluates, so it counts as outside.
+ * The test of an `if` always evaluates, so it counts as outside. A loop body runs
+ * zero times when the collection is empty or the condition starts false, so it
+ * counts as inside, while the expression a loop starts from always evaluates.
+ * `do … while` runs its body at least once, so only its condition is guarded.
  */
-function unguardedAssertions(
+function isGuardedChild(node: AnyNode, child: AnyNode): boolean {
+  switch (node.type) {
+    case "IfStatement":
+    case "ConditionalExpression":
+      return child !== (node.test as unknown);
+    case "LogicalExpression":
+      // `found && expect(...)` does not run when the condition fails.
+      return (
+        (node.operator === "&&" ||
+          node.operator === "||" ||
+          node.operator === "??") &&
+        child !== (node.left as unknown)
+      );
+    case "SwitchCase":
+    case "CatchClause":
+      return true;
+    case "ForStatement":
+      return (
+        child !== (node.init as unknown) && child !== (node.test as unknown)
+      );
+    case "ForInStatement":
+    case "ForOfStatement":
+      return child !== (node.right as unknown);
+    case "WhileStatement":
+      return child !== (node.test as unknown);
+    default:
+      return false;
+  }
+}
+
+/**
+ * How many checks sit outside every branch and loop body. A check is an assertion
+ * or a call to a helper in this file that asserts.
+ */
+function unguardedChecks(
   node: AnyNode,
   assertionNames: string[],
+  helpers: Set<string>,
   guarded = false,
 ): number {
-  let count = isAssertionCall(node, assertionNames) && !guarded ? 1 : 0;
+  let count =
+    !guarded &&
+    (isAssertionCall(node, assertionNames) || isHelperCall(node, helpers))
+      ? 1
+      : 0;
   for (const child of childNodes(node)) {
-    let childGuarded = guarded;
-    if (node.type === "IfStatement" || node.type === "ConditionalExpression") {
-      childGuarded = guarded || child !== (node.test as unknown);
-    } else if (
-      node.type === "LogicalExpression" &&
-      (node.operator === "&&" || node.operator === "||")
-    ) {
-      // `found && expect(...)` does not run when the condition fails.
-      childGuarded = guarded || child !== (node.left as unknown);
-    } else if (node.type === "SwitchCase" || node.type === "CatchClause") {
-      childGuarded = true;
-    }
-    count += unguardedAssertions(child, assertionNames, childGuarded);
+    count += unguardedChecks(
+      child,
+      assertionNames,
+      helpers,
+      guarded || isGuardedChild(node, child),
+    );
   }
   return count;
 }
@@ -221,13 +259,16 @@ export const noHollowTest: Rule.RuleModule = {
           source.ast as unknown as AnyNode,
           assertionNames,
         );
-        if (callsHelper(fnBody, helpers)) return;
-
-        if (!containsAssertion(fnBody, assertionNames)) {
+        // A helper call counts as a check, but only where it always runs:
+        // `if (found) expectSaved()` is as hollow as `if (found) expect(...)`.
+        if (
+          !containsAssertion(fnBody, assertionNames) &&
+          !callsHelper(fnBody, helpers)
+        ) {
           context.report({ messageId: "noAssertion", node });
           return;
         }
-        if (unguardedAssertions(fnBody, assertionNames) === 0) {
+        if (unguardedChecks(fnBody, assertionNames, helpers) === 0) {
           context.report({ messageId: "guardedOnly", node });
         }
       },

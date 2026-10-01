@@ -76,6 +76,68 @@ ruleTester.run("no-hollow-test", noHollowTest, {
       errors: [{ messageId: "noAssertion" }],
     },
     {
+      // A helper call inside a branch is as hollow as an assertion there.
+      code: `
+        function expectSaved(id) { expect(store.get(id)).toBeDefined(); }
+        it("saves when found", () => {
+          if (found) expectSaved("1");
+        });
+      `,
+      errors: [{ messageId: "guardedOnly" }],
+    },
+    {
+      // An empty collection runs the loop body zero times.
+      code: `
+        it("checks every row", () => {
+          for (const row of []) {
+            expect(row).toBeDefined();
+          }
+        });
+      `,
+      errors: [{ messageId: "guardedOnly" }],
+    },
+    {
+      code: `
+        it("checks every key", () => {
+          for (const key in record) expect(key).toBeTruthy();
+        });
+      `,
+      errors: [{ messageId: "guardedOnly" }],
+    },
+    {
+      code: `
+        it("checks by index", () => {
+          for (let i = 0; i < rows.length; i++) expect(rows[i]).toBeDefined();
+        });
+      `,
+      errors: [{ messageId: "guardedOnly" }],
+    },
+    {
+      code: `
+        it("checks while pending", () => {
+          while (queue.length) expect(queue.shift()).toBeDefined();
+        });
+      `,
+      errors: [{ messageId: "guardedOnly" }],
+    },
+    {
+      code: `
+        function expectRow(row) { expect(row).toBeDefined(); }
+        it("checks rows through a helper", () => {
+          for (const row of rows) expectRow(row);
+        });
+      `,
+      errors: [{ messageId: "guardedOnly" }],
+    },
+    {
+      code: `
+        it("checks only when missing", () => {
+          value ?? expect(fallback).toBe(1);
+        });
+      `,
+      errors: [{ messageId: "guardedOnly" }],
+    },
+    {
       // Renaming the assertion stops `expect` from counting as one.
       code: `it("uses expect after renaming", () => { expect(1).toBe(1); });`,
       errors: [{ messageId: "noAssertion" }],
@@ -101,6 +163,24 @@ ruleTester.run("no-hollow-test", noHollowTest, {
         if (isAdmin) expect(page.url()).toContain("/admin");
       });
     `,
+    // A checked loop is fine as long as something outside it also checks.
+    `
+      it("checks every row", () => {
+        expect(rows).toHaveLength(2);
+        for (const row of rows) expect(row).toBeDefined();
+      });
+    `,
+    `
+      function expectRow(row) { expect(row).toBeDefined(); }
+      it("checks the first row", () => {
+        expectRow(rows[0]);
+        if (rows[1]) expectRow(rows[1]);
+      });
+    `,
+    // `do … while` runs its body at least once.
+    `it("checks once", () => { do { expect(next()).toBeDefined(); } while (more()); });`,
+    // The collection a loop walks always evaluates.
+    `it("checks the source", () => { for (const row of expect(rows).toBeTruthy()) use(row); });`,
     // The test of an `if` always evaluates.
     `it("checks in the condition", () => { if (expect(a).toBe(1)) { run(); } });`,
     `it("has no body to inspect", "not a function");`,

@@ -50,7 +50,11 @@ pnpm build       # next build (demo site)
   produces a flood of false reports.
 - **The test of an `if` always evaluates**, so an assertion there counts as outside
   the branch. "Inside a branch" covers `if`, the conditional operator, the
-  right-hand side of `&&`/`||`, a `switch` case, and `catch`.
+  right-hand side of `&&`/`||`/`??`, a `switch` case, `catch`, and the body of a
+  `for`, `for…in`, `for…of` or `while` loop (an empty collection runs it zero
+  times). A `do … while` body runs at least once, so it counts as outside.
+- **A call to an asserting helper is a check like any other**, and is subject to
+  the same branch analysis: `if (found) expectSaved()` is reported.
 - **Helper following is per-file only.** Cross-file helpers need their names added
   to `assertionNames`.
 - Opting out is the author's declaration: a comment containing `hollow-test-ok`.
