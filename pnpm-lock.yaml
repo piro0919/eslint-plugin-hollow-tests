@@ -42,7 +42,7 @@ importers:
         specifier: ^9.39.5
         version: 9.39.5(jiti@2.7.0)(supports-color@7.2.0)
       lefthook:
-        specifier: ^2.1.17
+        specifier: ^2.2.0
         version: 2.2.1
       next:
         specifier: 16.4.0
