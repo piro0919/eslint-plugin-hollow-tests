@@ -31,8 +31,13 @@ a call to an assertion function. This rule goes two steps further.
 | Assertions moved into a helper | needs the helper listed in config | **followed automatically within the file** |
 
 "Inside a branch" covers `if`, the conditional operator, the right-hand side of
-`&&` and `||`, a `switch` case, and `catch`. The test of an `if` always evaluates,
-so it counts as outside.
+`&&`, `||` and `??`, a `switch` case, `catch`, and the body of a `for`, `for…in`,
+`for…of` or `while` loop, which runs zero times when the collection is empty. The
+test of an `if` and the collection a loop walks always evaluate, so they count as
+outside. Loops known to run their body at least once count as outside too:
+`do … while`, a `for…of` over an array written out with elements
+(`for (const status of [401, 403, 404])`), and a counting `for` whose literal
+bounds start the condition true (`for (let i = 0; i < 20; i++)`).
 
 ## Install
 

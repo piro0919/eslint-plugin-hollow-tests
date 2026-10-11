@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.0 - 2026-10-12
 
 ### Fixed
 
@@ -11,6 +11,8 @@
   reported as `guardedOnly` although every assertion in them runs. In one
   real suite this was 13 of 17 reports. An array of nothing but spreads, or
   bounds read from a variable, still counts as a branch.
+- The README now lists loops and `??` among the branches, as 0.2.0 already
+  treated them.
 
 ## 0.2.0 - 2026-10-01
 
