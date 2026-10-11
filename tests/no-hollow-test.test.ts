@@ -113,6 +113,35 @@ ruleTester.run("no-hollow-test", noHollowTest, {
       errors: [{ messageId: "guardedOnly" }],
     },
     {
+      // A spread can be empty, so the body may still run zero times.
+      code: `
+        it("checks every row", () => {
+          for (const row of [...rows]) expect(row).toBeDefined();
+        });
+      `,
+      errors: [{ messageId: "guardedOnly" }],
+    },
+    {
+      // The condition starts false, so the body never runs.
+      code: `
+        it("counts down from nothing", () => {
+          for (let i = 0; i > 3; i++) expect(i).toBe(0);
+        });
+      `,
+      errors: [{ messageId: "guardedOnly" }],
+    },
+    {
+      // Running the body once does not run what the body guards.
+      code: `
+        it("checks some statuses", () => {
+          for (const status of [401, 403]) {
+            if (status === 404) expect(status).toBe(404);
+          }
+        });
+      `,
+      errors: [{ messageId: "guardedOnly" }],
+    },
+    {
       code: `
         it("checks while pending", () => {
           while (queue.length) expect(queue.shift()).toBeDefined();
@@ -177,6 +206,16 @@ ruleTester.run("no-hollow-test", noHollowTest, {
         if (rows[1]) expectRow(rows[1]);
       });
     `,
+    // An array written out with elements runs the body at least once.
+    `
+      it("rejects every status", () => {
+        for (const status of [401, 403, 404]) expect(check(status)).toBe(false);
+      });
+    `,
+    `it("mixes in a spread", () => { for (const v of [1, ...rest]) expect(v).toBeDefined(); });`,
+    // So does a counting loop whose literal bounds start the condition true.
+    `it("repeats twenty times", () => { for (let i = 0; i < 20; i++) expect(roll()).toBeLessThan(7); });`,
+    `it("counts down", () => { for (let i = 3; i >= -1; i--) expect(i).toBeDefined(); });`,
     // `do … while` runs its body at least once.
     `it("checks once", () => { do { expect(next()).toBeDefined(); } while (more()); });`,
     // The collection a loop walks always evaluates.

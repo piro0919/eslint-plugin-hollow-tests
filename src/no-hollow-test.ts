@@ -159,12 +159,87 @@ function callsHelper(node: AnyNode, helpers: Set<string>): boolean {
 }
 
 /**
+ * Whether a `for … of` walks an array written out in place with at least one
+ * element, as in `for (const status of [401, 403, 404])`. Its body always runs.
+ * A spread can be empty, so an array of nothing but spreads does not count.
+ */
+function iteratesLiteralArray(node: AnyNode): boolean {
+  const right = node.right as AnyNode;
+  if (right.type !== "ArrayExpression") return false;
+  const elements = right.elements as (AnyNode | null)[];
+  return elements.some(
+    (element) => element && element.type !== "SpreadElement",
+  );
+}
+
+function numberLiteral(node: AnyNode | null | undefined): null | number {
+  if (node?.type === "Literal" && typeof node.value === "number") {
+    return node.value;
+  }
+  if (
+    node?.type === "UnaryExpression" &&
+    node.operator === "-" &&
+    (node.argument as AnyNode).type === "Literal"
+  ) {
+    const value = (node.argument as AnyNode).value;
+    return typeof value === "number" ? -value : null;
+  }
+  return null;
+}
+
+/**
+ * Whether a counting `for` starts with its condition true, as in
+ * `for (let i = 0; i < 20; i++)`. Both ends must be number literals; anything
+ * read from a variable could make the body run zero times.
+ */
+function countsFromLiterals(node: AnyNode): boolean {
+  const init = node.init as AnyNode | null;
+  const test = node.test as AnyNode | null;
+  if (
+    init?.type !== "VariableDeclaration" ||
+    test?.type !== "BinaryExpression"
+  ) {
+    return false;
+  }
+  const declarations = init.declarations as AnyNode[];
+  if (declarations.length !== 1) return false;
+  const [declaration] = declarations;
+  const id = declaration?.id as AnyNode | undefined;
+  const start = numberLiteral(declaration?.init as AnyNode | null);
+  const left = test.left as AnyNode;
+  const limit = numberLiteral(test.right as AnyNode);
+  if (
+    id?.type !== "Identifier" ||
+    left.type !== "Identifier" ||
+    left.name !== id.name ||
+    start === null ||
+    limit === null
+  ) {
+    return false;
+  }
+  switch (test.operator) {
+    case "<":
+      return start < limit;
+    case "<=":
+      return start <= limit;
+    case ">":
+      return start > limit;
+    case ">=":
+      return start >= limit;
+    default:
+      return false;
+  }
+}
+
+/**
  * Whether a child of `node` only runs on some paths.
  *
  * The test of an `if` always evaluates, so it counts as outside. A loop body runs
  * zero times when the collection is empty or the condition starts false, so it
  * counts as inside, while the expression a loop starts from always evaluates.
  * `do … while` runs its body at least once, so only its condition is guarded.
+ * Two loops are known to run their body: a `for … of` over an array written out
+ * with elements, and a counting `for` whose literal bounds start the condition true.
  */
 function isGuardedChild(node: AnyNode, child: AnyNode): boolean {
   switch (node.type) {
@@ -183,11 +258,17 @@ function isGuardedChild(node: AnyNode, child: AnyNode): boolean {
     case "CatchClause":
       return true;
     case "ForStatement":
+      if (countsFromLiterals(node)) {
+        // The body runs once for sure; the update runs only after it.
+        return child === (node.update as unknown);
+      }
       return (
         child !== (node.init as unknown) && child !== (node.test as unknown)
       );
-    case "ForInStatement":
     case "ForOfStatement":
+      if (iteratesLiteralArray(node)) return false;
+      return child !== (node.right as unknown);
+    case "ForInStatement":
       return child !== (node.right as unknown);
     case "WhileStatement":
       return child !== (node.test as unknown);
