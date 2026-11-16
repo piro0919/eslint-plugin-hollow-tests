@@ -24,11 +24,11 @@ looks covered. Neither is something a reader reliably notices.
 `vitest/expect-expect` and `jest/expect-expect` check whether a test body contains
 a call to an assertion function. This rule goes two steps further.
 
-| | expect-expect | hollow-tests |
-| ---- | ---- | ---- |
-| Body with no assertion | reported | reported |
-| Assertions only inside a branch | missed | **reported** |
-| Assertions moved into a helper | needs the helper listed in config | **followed automatically within the file** |
+|                                 | expect-expect                     | hollow-tests                               |
+| ------------------------------- | --------------------------------- | ------------------------------------------ |
+| Body with no assertion          | reported                          | reported                                   |
+| Assertions only inside a branch | missed                            | **reported**                               |
+| Assertions moved into a helper  | needs the helper listed in config | **followed automatically within the file** |
 
 "Inside a branch" covers `if`, the conditional operator, the right-hand side of
 `&&`, `||` and `??`, a `switch` case, `catch`, and the body of a `for`, `for…in`,
@@ -82,11 +82,11 @@ against 0.1.
 }]
 ```
 
-| Option | Default | Meaning |
-| ---- | ---- | ---- |
-| `assertionNames` | `["expect", "assert"]` | Calls that count as assertions. Member forms such as `assert.equal(...)` count too |
-| `testNames` | `["it", "test"]` | Calls that introduce a test body. Modifiers (`.skip`, `.each`, …) are matched automatically |
-| `optOutComment` | `"hollow-test-ok"` | A test carrying a comment with this text is left alone |
+| Option           | Default                | Meaning                                                                                     |
+| ---------------- | ---------------------- | ------------------------------------------------------------------------------------------- |
+| `assertionNames` | `["expect", "assert"]` | Calls that count as assertions. Member forms such as `assert.equal(...)` count too          |
+| `testNames`      | `["it", "test"]`       | Calls that introduce a test body. Modifiers (`.skip`, `.each`, …) are matched automatically |
+| `optOutComment`  | `"hollow-test-ok"`     | A test carrying a comment with this text is left alone                                      |
 
 ## Opting out
 
