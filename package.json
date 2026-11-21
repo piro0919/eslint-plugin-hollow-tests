@@ -61,7 +61,7 @@
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.5",
-    "@biomejs/biome": "2.6.7",
+    "@biomejs/biome": "2.6.8",
     "@piro0919/biome-config": "github:piro0919/biome-config#v1.1.0",
     "@tailwindcss/postcss": "^4.3.5",
     "@types/estree": "^1.0.10",
@@ -70,7 +70,7 @@
     "@types/react-dom": "^19.3.0",
     "@vercel/analytics": "^2.0.1",
     "babel-plugin-react-compiler": "^1.0.0",
-    "eslint": "^10.14.0",
+    "eslint": "^10.15.0",
     "lefthook": "^2.2.2",
     "next": "16.4.6",
     "publint": "^0.3.25",
@@ -79,7 +79,7 @@
     "tailwindcss": "^4.3.5",
     "tsup": "^9.0.0",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.72.2",
+    "typescript-eslint": "^8.73.0",
     "vitest": "^5.1.0"
   },
   "homepage": "https://eslint-plugin-hollow-tests.kkweb.io/"
