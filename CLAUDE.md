@@ -73,3 +73,11 @@ restoring. Assertions that never bite are worse than no tests.
 Bump `version` in `package.json`, add a `CHANGELOG.md` entry, then push a
 `vX.Y.Z` tag. `meta.version` is filled in from `package.json` by tsup's `define`
 (and by vitest's, for the tests), so it no longer needs a separate bump.
+
+`.github/workflows/publish.yml` authenticates through npm trusted publishing (OIDC),
+so there is no `NPM_TOKEN` to renew. **Before the next release, register the
+trusted publisher on npmjs.com** (package Settings → Trusted Publisher → GitHub
+Actions): `piro0919/eslint-plugin-hollow-tests`, workflow `publish.yml`, "Allow npm
+publish" checked. npm drops a connection that sees no publish within 48 hours, so
+register it right before pushing the tag; the first successful publish makes it
+permanent.
